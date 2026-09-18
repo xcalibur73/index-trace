@@ -171,7 +171,7 @@ Terminal output:
 
 ## Empirical Benchmarks & Case Studies
 
-IndexTrace has been benchmarked against real-world crawl architectures and RFC 9309 rule collision scenarios. Detailed empirical telemetry: [BENCHMARKS.md](BENCHMARKS.md).
+IndexTrace has been benchmarked while beta testing on random sites and real-world crawl architectures. Detailed empirical telemetry: [BENCHMARKS.md](BENCHMARKS.md).
 
 Key empirical findings:
 - RFC 9309 rule collisions: Isolated exact line-level disallows (e.g. `Disallow: /search$` at line 238 on `github.com/robots.txt`) within 300+ line production configurations.

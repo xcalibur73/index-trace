@@ -1,6 +1,6 @@
 # IndexTrace: Empirical Crawl Diagnostics & Case Studies
 
-Forensic case studies evaluating RFC 9309 robots collisions, multi-hop redirect latency accumulation, and soft-404 detection across real-world web targets.
+Forensic case studies evaluating RFC 9309 robots collisions, multi-hop redirect latency accumulation, and soft-404 detection gathered while beta testing on random sites.
 
 ---
 
