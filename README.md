@@ -169,6 +169,18 @@ Terminal output:
 
 ---
 
+## Empirical Benchmarks & Case Studies
+
+IndexTrace has been benchmarked against real-world crawl architectures and RFC 9309 rule collision scenarios. Detailed empirical telemetry: [BENCHMARKS.md](BENCHMARKS.md).
+
+Key empirical findings:
+- RFC 9309 rule collisions: Isolated exact line-level disallows (e.g. `Disallow: /search$` at line 238 on `github.com/robots.txt`) within 300+ line production configurations.
+- Redirect latency accumulation: Multi-hop redirect chains (such as 4-hop 302 sequences) introduce over 4,100ms of cumulative network connection delay, triggering crawler dropouts.
+- Protocol penalty: Internal links using legacy HTTP protocols incur an avoidable 110ms+ latency penalty per crawl request.
+- Soft-404 heuristics: Successfully detects HTTP 200 OK responses with depleted product catalogs or empty search results using title/heading signals and thin-content thresholds before GSC de-indexing occurs.
+
+---
+
 ## Test Suite
 
 IndexTrace includes unit tests covering line numbering accuracy, RFC 9309 longest matching rules, header parsing, soft-404 heuristics, and verdict synthesis:
