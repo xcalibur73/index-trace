@@ -1,0 +1,173 @@
+"""
+Unit test suite for IndexTrace components.
+Verifies RFC 9309 robots matching, directives parsing, soft-404 heuristics, and GSC synthesis.
+"""
+
+import unittest
+from unittest.mock import patch, MagicMock
+
+from index_trace.robots_matcher import (
+    pattern_to_regex,
+    parse_robots_with_line_numbers,
+    match_robots_path
+)
+from index_trace.directives_inspector import (
+    parse_link_header_canonical,
+    inspect_directives
+)
+from index_trace.soft404_detector import analyze_soft_404
+from index_trace.verdict_engine import synthesize_gsc_verdict
+from index_trace.tracer import trace_redirects
+
+class TestRobotsMatcher(unittest.TestCase):
+    def test_wildcard_regex_generation(self):
+        pat = pattern_to_regex("/private/*")
+        self.assertTrue(pat.match("/private/dashboard"))
+        self.assertTrue(pat.match("/private/secret.html"))
+        self.assertFalse(pat.match("/public/home"))
+
+    def test_line_number_and_agent_precedence(self):
+        robots_sample = """# Global directives
+User-agent: *
+Disallow: /admin/
+Allow: /admin/login
+
+# Dedicated Googlebot directives
+User-agent: Googlebot
+Disallow: /temp/
+Disallow: /private/data
+Allow: /private/
+"""
+        records = parse_robots_with_line_numbers(robots_sample)
+        self.assertIn("*", records)
+        self.assertIn("googlebot", records)
+
+        # Check exact line numbers
+        self.assertEqual(records["*"][0]["line_number"], 3)
+        self.assertEqual(records["*"][0]["pattern"], "/admin/")
+        self.assertEqual(records["*"][1]["line_number"], 4)
+
+        self.assertEqual(records["googlebot"][0]["line_number"], 8)
+        self.assertEqual(records["googlebot"][0]["pattern"], "/temp/")
+
+    def test_rfc9309_longest_match_and_allow_precedence(self):
+        robots_sample = """User-agent: *
+Disallow: /catalog
+Allow: /catalog/public
+"""
+        # /catalog/public matches both, but Allow is longer (15 chars vs 8 chars) -> ALLOWED
+        res1 = match_robots_path("/catalog/public/item-123", robots_sample, target_ua="googlebot")
+        self.assertEqual(res1["status"], "ALLOWED")
+        self.assertEqual(res1["line_number"], 3)
+
+        # /catalog/private matches /catalog only -> BLOCKED
+        res2 = match_robots_path("/catalog/private/secret", robots_sample, target_ua="googlebot")
+        self.assertEqual(res2["status"], "BLOCKED")
+        self.assertEqual(res2["line_number"], 2)
+
+    def test_rfc9309_equal_length_allow_wins(self):
+        robots_sample = """User-agent: *
+Disallow: /page
+Allow: /page
+"""
+        # When lengths are identical, Allow wins per RFC 9309
+        res = match_robots_path("/page", robots_sample, target_ua="googlebot")
+        self.assertEqual(res["status"], "ALLOWED")
+
+
+class TestDirectivesInspector(unittest.TestCase):
+    def test_link_header_canonical(self):
+        header = '<https://example.com/canonical-page>; rel="canonical"'
+        self.assertEqual(parse_link_header_canonical(header), "https://example.com/canonical-page")
+
+        header_single_quote = "<https://example.com/item>; rel='canonical'"
+        self.assertEqual(parse_link_header_canonical(header_single_quote), "https://example.com/item")
+
+        self.assertIsNone(parse_link_header_canonical("no canonical here"))
+
+    def test_header_noindex_detection(self):
+        headers = {"X-Robots-Tag": "noindex, nofollow"}
+        html = "<html><head><title>Test</title></head><body><h1>Hello</h1></body></html>"
+        res = inspect_directives("https://example.com/page", headers, html)
+        self.assertTrue(res["is_noindex_active"])
+        self.assertTrue(res["x_robots_tag"]["has_noindex"])
+
+    def test_meta_googlebot_noindex_detection(self):
+        headers = {}
+        html = '<html><head><meta name="googlebot" content="noindex, follow"><title>Page</title></head></html>'
+        res = inspect_directives("https://example.com/page", headers, html)
+        self.assertTrue(res["is_noindex_active"])
+        self.assertTrue(res["meta_robots"]["has_noindex"])
+
+    def test_canonical_alignment(self):
+        headers = {}
+        html_self = '<html><head><link rel="canonical" href="https://example.com/test"/></head></html>'
+        res_self = inspect_directives("https://example.com/test", headers, html_self)
+        self.assertEqual(res_self["canonical"]["status"], "CLEAN_SELF")
+
+        html_external = '<html><head><link rel="canonical" href="https://example.com/master-page"/></head></html>'
+        res_ext = inspect_directives("https://example.com/variant-page", headers, html_external)
+        self.assertEqual(res_ext["canonical"]["status"], "EXTERNAL_CANONICAL")
+
+
+class TestSoft404Detector(unittest.TestCase):
+    def test_soft404_title_marker(self):
+        html = "<html><head><title>404 Not Found - My Store</title></head><body>We could not find the page you requested.</body></html>"
+        res = analyze_soft_404(200, html)
+        self.assertTrue(res["is_soft_404"])
+        self.assertIn("Title tag contains 404 error marker", res["detected_signals"][0])
+
+    def test_clean_rich_page(self):
+        html = """<html><head><title>Expert Technical SEO Services</title></head><body>
+        <h1>Comprehensive Organic Search Diagnostics</h1>
+        <p>""" + ("We optimize web architectures for crawl efficiency, indexing precision, and maximum organic visibility. " * 10) + """</p>
+        </body></html>"""
+        res = analyze_soft_404(200, html)
+        self.assertFalse(res["is_soft_404"])
+        self.assertEqual(res["verdict"], "CLEAN")
+
+    def test_non_200_status(self):
+        res = analyze_soft_404(404, "<html><body>Not Found</body></html>")
+        self.assertFalse(res["is_soft_404"])
+        self.assertEqual(res["probability_percent"], 0)
+
+
+class TestVerdictEngine(unittest.TestCase):
+    def test_infinite_loop_verdict(self):
+        trace = {
+            "start_url": "https://example.com/a",
+            "is_loop": True,
+            "loop_url": "https://example.com/a",
+            "hops": [{"url": "https://example.com/a", "status_code": 301, "location": "https://example.com/a"}]
+        }
+        verdict = synthesize_gsc_verdict(trace, {"status": "ALLOWED"}, {"is_noindex_active": False}, {"is_soft_404": False})
+        self.assertIn("REDIRECT_ERROR (Infinite Loop)", verdict["gsc_status"])
+        self.assertEqual(verdict["severity"], "CRITICAL")
+        self.assertFalse(verdict["is_indexable"])
+
+    def test_robots_blocked_verdict(self):
+        trace = {"start_url": "https://example.com/admin", "final_status_code": 200, "is_loop": False}
+        robots = {
+            "status": "BLOCKED",
+            "matching_rule": "Disallow: /admin/",
+            "line_number": 12,
+            "robots_url": "https://example.com/robots.txt"
+        }
+        verdict = synthesize_gsc_verdict(trace, robots, {"is_noindex_active": False}, {"is_soft_404": False})
+        self.assertEqual(verdict["gsc_status"], "BLOCKED_BY_ROBOTS_TXT")
+        self.assertFalse(verdict["is_indexable"])
+        self.assertIn("line 12", verdict["root_cause"])
+
+    def test_clean_indexable_verdict(self):
+        trace = {"start_url": "https://example.com/blog", "final_status_code": 200, "is_loop": False, "hops": []}
+        robots = {"status": "ALLOWED"}
+        directives = {"is_noindex_active": False, "canonical": {"status": "CLEAN_SELF"}}
+        soft404 = {"is_soft_404": False}
+        verdict = synthesize_gsc_verdict(trace, robots, directives, soft404)
+        self.assertEqual(verdict["gsc_status"], "CLEAN_INDEXABLE")
+        self.assertTrue(verdict["is_indexable"])
+        self.assertEqual(verdict["severity"], "OK")
+
+
+if __name__ == "__main__":
+    unittest.main()
