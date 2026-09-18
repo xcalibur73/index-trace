@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Google Search Console indexing diagnostic and RFC 9309 crawler collision tracer"
 readme = "README.md"
 authors = [
-  { name = "Sadikeen Firoz", email = "sadikeenfiroz@gmail.com" }
+  { name = "xcalibur73" }
 ]
 license = { text = "MIT" }
 classifiers = [

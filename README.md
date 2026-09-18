@@ -190,7 +190,7 @@ OK
 
 ## Author & Attribution
 
-Developed by **Sadikeen Firoz** ([@xcalibur73](https://github.com/xcalibur73)), creator of [WebAudits.pro](https://webaudits.pro).
+Maintained by [@xcalibur73](https://github.com/xcalibur73), creator of [WebAudits.pro](https://webaudits.pro).
 
 Part of a technical SEO engineering tooling trio:
 1. [dom-hydrate](https://github.com/xcalibur73/dom-hydrate): Headless Chromium SSR vs CSR DOM diff engine.
