@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-19
+
+### Added
+- Automated `Sitemap:` directive discovery and validation from `robots.txt` matching RFC 9309 and search crawler conventions.
+- Line number reporting for discovered sitemap directives in CLI terminal output, Markdown, and JSON.
+- Dedicated unit test `test_sitemap_extraction_from_robots` validating directive extraction.
+
 ## [1.0.0] - 2026-09-19
 
 ### Added
