@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-19
+
+### Added
+- Human-readable audit summaries with a status, impact, evidence, and recommended fixes.
+- `--audience`, `--format html`, and `--fix-plan` CLI controls.
+- Self-contained HTML reports with responsive findings and expandable technical evidence.
+
 ## [1.1.0] - 2026-09-19
 
 ### Added

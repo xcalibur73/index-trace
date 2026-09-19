@@ -2,7 +2,10 @@
 Terminal and Markdown formatters for IndexTrace audits.
 """
 
+import html
 from typing import Dict, Any
+
+from .human_report import build_human_report
 
 try:
     from rich.console import Console
@@ -32,13 +35,42 @@ def _safe_str(text: Any) -> str:
     return text.encode("ascii", errors="replace").decode("ascii")
 
 
+def _print_human_summary(report: Dict[str, Any], fix_plan: bool) -> None:
+    if HAS_RICH:
+        color = {"Pass": "green", "Needs attention": "yellow", "Critical": "red"}[report["status"]]
+        content = Text()
+        content.append(f"{report['status']}: ", style=f"bold {color}")
+        content.append(report["summary"])
+        console = Console()
+        console.print(Panel(content, title="Plain-language result", border_style=color))
+        if report["findings"]:
+            finding = report["findings"][0]
+            title = "Fix plan" if fix_plan else "Recommended fix"
+            console.print(Panel(_safe_str(finding["recommended_fix"]), title=title, border_style=color))
+        return
+
+    print(f"\n{report['status']}: {report['summary']}")
+    if fix_plan:
+        for finding in report["findings"]:
+            print(f"- {finding['recommended_fix']}")
+
+
 def print_terminal_report(
     trace_data: Dict[str, Any],
     robots_data: Dict[str, Any],
     directives_data: Dict[str, Any],
     soft404_data: Dict[str, Any],
-    verdict_data: Dict[str, Any]
+    verdict_data: Dict[str, Any],
+    audience: str = "human",
+    fix_plan: bool = False,
 ):
+    human_report = build_human_report(
+        trace_data, robots_data, directives_data, soft404_data, verdict_data
+    )
+    _print_human_summary(human_report, fix_plan)
+    if audience == "human":
+        return
+
     if not HAS_RICH:
         print(f"\n=== IndexTrace GSC Diagnosis: {trace_data.get('start_url')} ===")
         print(f"GSC Status: {verdict_data.get('gsc_status')}")
@@ -195,3 +227,34 @@ def export_markdown_report(
         md.append(f"{i}. {r}")
 
     return "\n".join(md)
+
+
+def export_html_report(
+    trace_data: Dict[str, Any],
+    robots_data: Dict[str, Any],
+    directives_data: Dict[str, Any],
+    soft404_data: Dict[str, Any],
+    verdict_data: Dict[str, Any],
+) -> str:
+    """Return a self-contained HTML report with plain-language findings."""
+    report = build_human_report(
+        trace_data, robots_data, directives_data, soft404_data, verdict_data
+    )
+    finding = report["findings"][0]
+    status_class = report["status"].lower().replace(" ", "-")
+    hop_rows = "".join(
+        f"<tr><td>{html.escape(str(hop.get('hop')))}</td><td>{html.escape(str(hop.get('status_code')))}</td>"
+        f"<td>{html.escape(str(hop.get('latency_ms')))} ms</td><td>{html.escape(str(hop.get('url')))}</td></tr>"
+        for hop in trace_data.get("hops", [])
+    ) or "<tr><td colspan='4'>No redirect hops recorded.</td></tr>"
+    return f"""<!doctype html>
+<html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>IndexTrace report</title><style>
+:root {{ color-scheme:light; --ink:#20201e; --muted:#716c64; --line:#ddd7ce; --paper:#f7f4ee; --panel:#fff; --accent:#b76345; --good:#216e4e; --warn:#9a6700; --bad:#b42318; }}
+* {{ box-sizing:border-box; }} body {{ margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 Georgia,serif; }} main {{ width:min(920px,calc(100% - 32px)); margin:48px auto; }} h1,h2 {{ line-height:1.15; }} .eyebrow,.severity {{ margin:0; font:700 12px/1.2 Arial,sans-serif; letter-spacing:.08em; text-transform:uppercase; }} .status {{ border-left:6px solid var(--accent); padding:24px; background:var(--panel); }} .pass {{ border-color:var(--good); }} .needs-attention {{ border-color:var(--warn); }} .critical {{ border-color:var(--bad); }} .finding,details {{ margin-top:16px; padding:20px 24px; background:var(--panel); border:1px solid var(--line); }} .severity.pass {{ color:var(--good); }} .severity.needs-attention {{ color:var(--warn); }} .severity.critical {{ color:var(--bad); }} table {{ width:100%; border-collapse:collapse; margin-top:12px; font-family:Arial,sans-serif; font-size:14px; }} th,td {{ padding:12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; overflow-wrap:anywhere; }} summary {{ cursor:pointer; font-weight:700; }} @media (max-width:600px) {{ main {{ width:min(100% - 24px,920px); margin:24px auto; }} .status,.finding,details {{ padding:18px; }} }}
+</style></head><body><main>
+<p class='eyebrow'>IndexTrace report</p><h1>{html.escape(str(trace_data.get('start_url')))}</h1>
+<section class='status {status_class}'><p class='severity {status_class}'>{html.escape(report['status'])}</p><p>{html.escape(report['summary'])}</p></section>
+<section class='finding'><p class='severity {status_class}'>{html.escape(finding['severity'])}</p><h2>{html.escape(finding['title'])}</h2><p><strong>Why it matters:</strong> {html.escape(finding['impact'])}</p><p><strong>Evidence:</strong> {html.escape(finding['evidence'])}</p><p><strong>Recommended fix:</strong> {html.escape(finding['recommended_fix'])}</p></section>
+<details><summary>Technical evidence</summary><p>Robots access: {html.escape(str(robots_data.get('status')))}. Matching rule: {html.escape(str(robots_data.get('matching_rule') or 'None'))}. Canonical status: {html.escape(str(directives_data.get('canonical', {}).get('status')))}.</p><table><thead><tr><th>Hop</th><th>Status</th><th>Latency</th><th>URL</th></tr></thead><tbody>{hop_rows}</tbody></table></details>
+</main></body></html>"""

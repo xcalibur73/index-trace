@@ -15,7 +15,7 @@ from index_trace.robots_matcher import check_url_robots_collision
 from index_trace.directives_inspector import inspect_directives
 from index_trace.soft404_detector import analyze_soft_404
 from index_trace.verdict_engine import synthesize_gsc_verdict
-from index_trace.formatters import print_terminal_report, export_markdown_report
+from index_trace.formatters import export_html_report, export_markdown_report, print_terminal_report
 
 CLOUD_TOOL_URL = "https://webaudits.pro/tools/index-trace"
 
@@ -108,10 +108,21 @@ def main(args: Optional[list] = None) -> int:
         help="Simulated crawler User-Agent profile (default: googlebot)"
     )
     parser.add_argument(
-        "--output",
-        choices=["terminal", "markdown", "json"],
+        "--output", "--format",
+        choices=["terminal", "markdown", "json", "html"],
         default="terminal",
         help="Report output format (default: terminal)"
+    )
+    parser.add_argument(
+        "--audience",
+        choices=["human", "expert"],
+        default="human",
+        help="Report detail level (default: human)"
+    )
+    parser.add_argument(
+        "--fix-plan",
+        action="store_true",
+        help="Emphasize recommended fixes in terminal output"
     )
     parser.add_argument(
         "--save",
@@ -182,10 +193,21 @@ def main(args: Optional[list] = None) -> int:
             trace_data, robots_data, directives_data, soft404_data, verdict_data
         )
         print(output_str)
+    elif parsed.output == "html":
+        output_str = export_html_report(
+            trace_data, robots_data, directives_data, soft404_data, verdict_data
+        )
+        print(output_str)
     else:
         output_str = None
         print_terminal_report(
-            trace_data, robots_data, directives_data, soft404_data, verdict_data
+            trace_data,
+            robots_data,
+            directives_data,
+            soft404_data,
+            verdict_data,
+            audience=parsed.audience,
+            fix_plan=parsed.fix_plan,
         )
 
     if parsed.cloud:
@@ -198,6 +220,10 @@ def main(args: Optional[list] = None) -> int:
             content_to_save = json.dumps(report, indent=2)
         elif save_path.endswith(".md"):
             content_to_save = export_markdown_report(
+                trace_data, robots_data, directives_data, soft404_data, verdict_data
+            )
+        elif save_path.endswith(".html"):
+            content_to_save = export_html_report(
                 trace_data, robots_data, directives_data, soft404_data, verdict_data
             )
         else:

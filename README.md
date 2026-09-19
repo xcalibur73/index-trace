@@ -81,6 +81,12 @@ index-trace https://example.com --max-hops 20 --timeout 15
 # Export machine-readable JSON for CI/CD deployment gates
 index-trace https://example.com --output json --save gsc-report.json
 
+# Write a shareable HTML report for a client or teammate
+index-trace https://example.com --format html --save index-report.html
+
+# Show full technical evidence after the plain-language result
+index-trace https://example.com --audience expert --fix-plan
+
 # Check installed version
 index-trace --version
 ```
