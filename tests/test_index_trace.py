@@ -4,6 +4,9 @@ Verifies RFC 9309 robots matching, directives parsing, soft-404 heuristics, and 
 """
 
 import unittest
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from unittest.mock import patch, MagicMock
 
 from index_trace.robots_matcher import (

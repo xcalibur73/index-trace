@@ -150,7 +150,7 @@ def main(args: Optional[list] = None) -> int:
 
     if not parsed.url:
         parser.print_help()
-        return 1
+        return 0
 
     target_url = parsed.url
     if not target_url.startswith("http://") and not target_url.startswith("https://"):

@@ -13,6 +13,25 @@ try:
 except ImportError:
     HAS_RICH = False
 
+
+def _safe_str(text: Any) -> str:
+    if not isinstance(text, str):
+        text = str(text or "")
+    text = (
+        text.replace("\u2192", "->")
+        .replace("\u2190", "<-")
+        .replace("\u2194", "<->")
+        .replace("\u2022", "*")
+        .replace("\u2019", "'")
+        .replace("\u2018", "'")
+        .replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("\u2014", "-")
+        .replace("\u2013", "-")
+    )
+    return text.encode("ascii", errors="replace").decode("ascii")
+
+
 def print_terminal_report(
     trace_data: Dict[str, Any],
     robots_data: Dict[str, Any],
@@ -38,9 +57,9 @@ def print_terminal_report(
     # Header Panel
     header = Text()
     header.append("IndexTrace: Google Search Console Forensic Diagnostic\n", style="bold cyan")
-    header.append(f"Target: {trace_data.get('start_url')}\n", style="bold white")
+    header.append(f"Target: {_safe_str(trace_data.get('start_url'))}\n", style="bold white")
     header.append(f"GSC Diagnosis: {status}\n", style=f"bold {status_color}")
-    header.append(f"Root Cause: {verdict_data.get('root_cause')}", style="dim")
+    header.append(f"Root Cause: {_safe_str(verdict_data.get('root_cause'))}", style="dim")
 
     console.print(Panel(header, border_style=status_color))
 
@@ -55,12 +74,12 @@ def print_terminal_report(
     for h in trace_data.get("hops", []):
         sc = h["status_code"]
         sc_color = "green" if sc == 200 else ("yellow" if 300 <= sc < 400 else "red")
-        loc_str = h["location"] or ""
+        loc_str = _safe_str(h["location"] or "")
         hop_table.add_row(
             str(h["hop"]),
             f"[{sc_color}]{sc}[/{sc_color}]",
             f"{h['latency_ms']} ms",
-            h["url"],
+            _safe_str(h["url"]),
             loc_str
         )
 
@@ -126,7 +145,7 @@ def print_terminal_report(
     # 4. Engineering Remediation Panel
     rem_text = Text()
     for i, r in enumerate(verdict_data.get("remediation", []), 1):
-        rem_text.append(f"{i}. {r}\n", style="bold white")
+        rem_text.append(f"{i}. {_safe_str(r)}\n", style="bold white")
 
     console.print(Panel(rem_text, title="Step-by-Step Engineering Remediation", border_style="yellow"))
 
