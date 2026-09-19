@@ -100,6 +100,15 @@ def print_terminal_report(
     rob_table.add_row("Matching Directive", f"{match_rule} ({line_no})")
     rob_table.add_row("Robots.txt File Location", robots_data.get("robots_url", "N/A"))
 
+    sitemaps = robots_data.get("sitemaps", [])
+    if sitemaps:
+        s_summary = ", ".join(f"{s['url']} (Line {s['line_number']})" for s in sitemaps[:2])
+        if len(sitemaps) > 2:
+            s_summary += f" +{len(sitemaps) - 2} more"
+        rob_table.add_row("Declared Sitemaps", f"[green]{_safe_str(s_summary)}[/green]")
+    else:
+        rob_table.add_row("Declared Sitemaps", "[yellow]None declared in robots.txt[/yellow]")
+
     console.print(rob_table)
 
     # 3. Directives & Canonical Alignment Table

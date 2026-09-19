@@ -12,7 +12,8 @@ from unittest.mock import patch, MagicMock
 from index_trace.robots_matcher import (
     pattern_to_regex,
     parse_robots_with_line_numbers,
-    match_robots_path
+    match_robots_path,
+    extract_sitemaps_from_robots
 )
 from index_trace.directives_inspector import (
     parse_link_header_canonical,
@@ -170,6 +171,20 @@ class TestVerdictEngine(unittest.TestCase):
         self.assertEqual(verdict["gsc_status"], "CLEAN_INDEXABLE")
         self.assertTrue(verdict["is_indexable"])
         self.assertEqual(verdict["severity"], "OK")
+
+    def test_sitemap_extraction_from_robots(self):
+        sample_robots = """
+        User-agent: *
+        Disallow: /admin/
+        
+        Sitemap: https://example.com/sitemap.xml
+        Sitemap: https://example.com/sitemap-posts.xml
+        """
+        sitemaps = extract_sitemaps_from_robots(sample_robots)
+        self.assertEqual(len(sitemaps), 2)
+        self.assertEqual(sitemaps[0]["url"], "https://example.com/sitemap.xml")
+        self.assertEqual(sitemaps[1]["url"], "https://example.com/sitemap-posts.xml")
+        self.assertEqual(sitemaps[0]["line_number"], 5)
 
 
 if __name__ == "__main__":

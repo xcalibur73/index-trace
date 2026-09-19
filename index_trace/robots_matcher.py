@@ -58,6 +58,23 @@ def parse_robots_with_line_numbers(robots_txt: str) -> Dict[str, List[Dict[str, 
 
     return records
 
+def extract_sitemaps_from_robots(robots_txt: str) -> List[Dict[str, Any]]:
+    """Extract all declared Sitemap directives with line numbers."""
+    sitemaps: List[Dict[str, Any]] = []
+    for line_no, raw_line in enumerate(robots_txt.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if ":" not in line:
+            continue
+        key, val = line.split(":", 1)
+        if key.strip().lower() == "sitemap":
+            sitemaps.append({
+                "url": val.strip(),
+                "line_number": line_no
+            })
+    return sitemaps
+
 def match_robots_path(url_path: str, robots_txt: str, target_ua: str = "googlebot") -> Dict[str, Any]:
     if not robots_txt.strip():
         return {
@@ -157,6 +174,7 @@ def check_url_robots_collision(target_url: str, target_ua: str = "googlebot", ti
         path_with_query += "?" + parsed.query
 
     match_result = match_robots_path(path_with_query, content, target_ua=target_ua)
+    sitemaps = extract_sitemaps_from_robots(content)
 
     return {
         "robots_url": robots_url,
@@ -168,5 +186,7 @@ def check_url_robots_collision(target_url: str, target_ua: str = "googlebot", ti
         "matching_rule": match_result["matching_rule"],
         "line_number": match_result["line_number"],
         "user_agent_applied": match_result["user_agent_applied"],
+        "sitemaps": sitemaps,
+        "sitemap_declared": len(sitemaps) > 0,
         "raw_content": content
     }

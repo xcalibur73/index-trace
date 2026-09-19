@@ -34,6 +34,7 @@ Google Search Console frequently reports high-level, opaque exclusion categories
 
 IndexTrace inspects all layers in a single pass:
 - **RFC 9309 robots.txt Resolution:** Identifies the exact rule and line number in `robots.txt` governing a URL using formal longest-match prefix precedence.
+- **Sitemap Directive Discovery:** Extracts and audits declared `Sitemap:` URLs with exact line numbers to ensure crawlers can discover site content.
 - **Hop-by-Hop Redirect Latency:** Measures cumulative network latency across multi-hop redirect chains and flags protocol downgrades (HTTPS to HTTP).
 - **Directive Reconciliation:** Evaluates `<link rel="canonical">`, HTML `<meta name="robots">`, and HTTP `X-Robots-Tag` headers.
 - **Soft-404 Detection:** Evaluates HTTP 200 responses against content density and error token heuristics.
@@ -84,6 +85,7 @@ Robots.txt Analysis (RFC 9309):
 - Evaluated User-Agent: Googlebot
 - Matching Rule: Line 4 (Allow: /)
 - Origin robots.txt: https://webaudits.pro/robots.txt
+- Declared Sitemaps: https://webaudits.pro/sitemap.xml (Line 6)
 
 GSC Diagnostic Verdict: INDEXABLE (Clean 200 OK, zero redirect hops, canonical self-referential)
 ```
