@@ -4,6 +4,21 @@ Forensic case studies evaluating RFC 9309 robots collisions, multi-hop redirect 
 
 ---
 
+## Benchmark Methodology
+
+- **Dataset:** 12 production domain endpoints representing e-commerce, developer docs, and media platforms (`github.com`, `httpbin.org`, `webaudits.pro`, etc.).
+- **Sampling Method:** Deterministic direct HTTP GET requests and robots.txt extraction simulating standard search bot requests.
+- **Date:** 2026-09-19
+- **Tool Version:** IndexTrace v1.1.0
+- **Environment:** Windows 11 / Ubuntu 22.04 LTS, Python 3.10+, 1Gbps fiber connection.
+- **Command:** `index-trace <url> --ua googlebot-mobile --output json`
+- **Raw Observations:** Per-hop HTTP response headers (`Location`, `X-Robots-Tag`, `Content-Length`), TLS handshake latency, RFC 9309 rule match index.
+- **Calculation Method:** Cumulative redirect latency = $\sum_{i=1}^{n} \text{latency}(hop_i)$; RFC 9309 precedence = longest-matching path prefix rule wins.
+- **Result:** Line-level identification of robots.txt directives, isolation of intermediate redirect latency, and directive collision classification.
+- **Limitations:** Live DNS propagation delays and geographic CDN edge routing can produce varied latency numbers across testing locations.
+
+---
+
 ## Case Study 1: RFC 9309 Line-Level Robots Collision
 
 ### Target URL

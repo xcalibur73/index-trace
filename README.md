@@ -26,6 +26,30 @@ index-trace https://example.com --ua googlebot-mobile
 
 ---
 
+## Typical SEO Incident Diagnosed in 10 Seconds
+
+### Incident: Staging Header Leak Dropping Priority Pages from Google Index
+- **Symptom:** Google Search Console suddenly flags 85 product URLs under "Excluded by 'noindex' tag" after an edge routing update, with organic traffic dropping. The page source shows `<meta name="robots" content="index, follow">`.
+- **Command:**
+  ```bash
+  index-trace https://example.com/products/flagship --ua googlebot-mobile
+  ```
+- **Diagnosis Isolated:**
+  ```text
+  Hop 1: 301 Moved Permanently -> https://example.com/products/flagship/ (38ms)
+  Hop 2: 200 OK (210ms)
+    - HTML Meta Robots: index, follow [PASS]
+    - HTTP Header: X-Robots-Tag: noindex, nofollow [CRITICAL FAILURE]
+    - Origin Header Source: Edge worker injected header meant for staging.example.com
+    - GSC Root Cause: HTTP header overrides HTML meta tag per Google Search Central specifications.
+  ```
+- **Recommended Remediation:**
+  1. Patch edge proxy configuration to restrict `X-Robots-Tag` injection to `staging.*` hostnames.
+  2. Verify removal with `index-trace https://example.com/products/flagship`.
+  3. Submit batch re-indexing request via Google Search Console URL Inspection API.
+
+---
+
 ## What It Does & Why It Matters
 
 IndexTrace diagnoses why URLs get excluded or dropped from search engine indexes by evaluating multi-layer network, protocol, and directive bottlenecks.
