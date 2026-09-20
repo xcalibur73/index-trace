@@ -5,7 +5,7 @@ Terminal and Markdown formatters for IndexTrace audits.
 import html
 from typing import Dict, Any
 
-from .human_report import build_human_report
+from .summary_report import build_summary_report
 
 try:
     from rich.console import Console
@@ -35,14 +35,14 @@ def _safe_str(text: Any) -> str:
     return text.encode("ascii", errors="replace").decode("ascii")
 
 
-def _print_human_summary(report: Dict[str, Any], fix_plan: bool) -> None:
+def _print_executive_summary(report: Dict[str, Any], fix_plan: bool) -> None:
     if HAS_RICH:
         color = {"Pass": "green", "Needs attention": "yellow", "Critical": "red"}[report["status"]]
         content = Text()
         content.append(f"{report['status']}: ", style=f"bold {color}")
         content.append(report["summary"])
         console = Console()
-        console.print(Panel(content, title="Plain-language result", border_style=color))
+        console.print(Panel(content, title="Executive Summary", border_style=color))
         if report["findings"]:
             finding = report["findings"][0]
             title = "Fix plan" if fix_plan else "Recommended fix"
@@ -54,6 +54,8 @@ def _print_human_summary(report: Dict[str, Any], fix_plan: bool) -> None:
         for finding in report["findings"]:
             print(f"- {finding['recommended_fix']}")
 
+_print_human_summary = _print_executive_summary
+
 
 def print_terminal_report(
     trace_data: Dict[str, Any],
@@ -61,14 +63,14 @@ def print_terminal_report(
     directives_data: Dict[str, Any],
     soft404_data: Dict[str, Any],
     verdict_data: Dict[str, Any],
-    audience: str = "human",
+    audience: str = "summary",
     fix_plan: bool = False,
 ):
-    human_report = build_human_report(
+    summary_report = build_summary_report(
         trace_data, robots_data, directives_data, soft404_data, verdict_data
     )
-    _print_human_summary(human_report, fix_plan)
-    if audience == "human":
+    _print_executive_summary(summary_report, fix_plan)
+    if audience in ("summary", "executive", "human"):
         return
 
     if not HAS_RICH:
@@ -236,8 +238,8 @@ def export_html_report(
     soft404_data: Dict[str, Any],
     verdict_data: Dict[str, Any],
 ) -> str:
-    """Return a self-contained HTML report with plain-language findings."""
-    report = build_human_report(
+    """Return a self-contained HTML report with executive findings."""
+    report = build_summary_report(
         trace_data, robots_data, directives_data, soft404_data, verdict_data
     )
     finding = report["findings"][0]

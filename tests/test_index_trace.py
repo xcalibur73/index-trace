@@ -23,7 +23,7 @@ from index_trace.soft404_detector import analyze_soft_404
 from index_trace.verdict_engine import synthesize_gsc_verdict
 from index_trace.tracer import trace_redirects
 from index_trace.formatters import export_html_report
-from index_trace.human_report import build_human_report
+from index_trace.summary_report import build_summary_report, build_human_report
 
 class TestRobotsMatcher(unittest.TestCase):
     def test_wildcard_regex_generation(self):
@@ -189,9 +189,9 @@ class TestVerdictEngine(unittest.TestCase):
         self.assertEqual(sitemaps[0]["line_number"], 5)
 
 
-class TestHumanReport(unittest.TestCase):
-    def test_human_report_translates_robots_block(self):
-        report = build_human_report(
+class TestSummaryReport(unittest.TestCase):
+    def test_summary_report_translates_robots_block(self):
+        report = build_summary_report(
             {"final_status_code": 200, "total_hops": 0},
             {"status": "BLOCKED"},
             {"is_noindex_active": False},
@@ -206,6 +206,20 @@ class TestHumanReport(unittest.TestCase):
 
         self.assertEqual(report["status"], "Critical")
         self.assertEqual(report["findings"][0]["recommended_fix"], "Narrow the blocking rule.")
+        # Ensure backward compatibility alias functions identically
+        alias_report = build_human_report(
+            {"final_status_code": 200, "total_hops": 0},
+            {"status": "BLOCKED"},
+            {"is_noindex_active": False},
+            {"is_soft_404": False},
+            {
+                "severity": "CRITICAL",
+                "gsc_status": "BLOCKED_BY_ROBOTS_TXT",
+                "root_cause": "Blocked by a robots.txt rule.",
+                "remediation": ["Narrow the blocking rule."],
+            },
+        )
+        self.assertEqual(alias_report["status"], "Critical")
 
     def test_html_report_contains_fix_and_trace(self):
         report = export_html_report(

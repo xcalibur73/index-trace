@@ -86,8 +86,8 @@ index-trace https://example.com --output json --save gsc-report.json
 # Write a shareable HTML report for a client or teammate
 index-trace https://example.com --format html --save index-report.html
 
-# Show full technical evidence after the plain-language result
-index-trace https://example.com --audience expert --fix-plan
+# Show full technical evidence after the executive summary
+index-trace https://example.com --audience detailed --fix-plan
 
 # Check installed version
 index-trace --version

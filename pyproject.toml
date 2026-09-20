@@ -4,16 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "index-trace"
-version = "1.2.0"
+version = "1.2.1"
 description = "Google Search Console indexing diagnostic and RFC 9309 crawler collision tracer"
 readme = "README.md"
 authors = [
-  { name = "xcalibur73" }
+  { name = "Web Audits Engineering Team" }
 ]
 license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
-    # PolyForm Noncommercial 1.0.0
     "License :: Free For Educational Use",
     "License :: Free For Non-commercial Use",
     "Operating System :: OS Independent",
@@ -36,6 +35,5 @@ include = ["index_trace*"]
 exclude = ["assets*", "tests*"]
 
 [project.urls]
-"Homepage" = "https://github.com/xcalibur73/index-trace"
+"Homepage" = "https://webaudits.pro/tools/index-trace"
 "Cloud Engine" = "https://webaudits.pro/tools/index-trace"
-"Bug Tracker" = "https://github.com/xcalibur73/index-trace/issues"

@@ -115,9 +115,9 @@ def main(args: Optional[list] = None) -> int:
     )
     parser.add_argument(
         "--audience",
-        choices=["human", "expert"],
-        default="human",
-        help="Report detail level (default: human)"
+        choices=["summary", "detailed", "executive", "technical", "human", "expert"],
+        default="summary",
+        help="Report detail level: summary (default) or detailed"
     )
     parser.add_argument(
         "--fix-plan",
