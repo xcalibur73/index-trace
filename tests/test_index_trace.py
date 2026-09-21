@@ -239,6 +239,46 @@ class TestSummaryReport(unittest.TestCase):
         self.assertIn("Technical evidence", report)
         self.assertIn("No action required.", report)
 
+    def test_error_page_html_noindex_suppressed_on_non_200(self):
+        # Cloudflare / WAF 403 error page with meta robots noindex
+        headers = {"Server": "cloudflare"}
+        error_html = '<html><head><meta name="robots" content="noindex, nofollow"><title>403 Forbidden</title></head><body>Access Denied</body></html>'
+        
+        # When status_code is 403, error page HTML meta must NOT activate is_noindex_active
+        res_403 = inspect_directives("https://example.com/blocked", headers, error_html, status_code=403)
+        self.assertFalse(res_403["is_noindex_active"])
+        self.assertEqual(res_403["canonical"]["status"], "NON_200_RESPONSE")
+
+        # When status_code is 200, meta robots IS processed
+        res_200 = inspect_directives("https://example.com/blocked", headers, error_html, status_code=200)
+        self.assertTrue(res_200["is_noindex_active"])
+
+    def test_client_error_verdicts(self):
+        # 403 Forbidden / WAF block
+        trace_403 = {"start_url": "https://example.com/api", "final_status_code": 403, "is_loop": False}
+        verdict_403 = synthesize_gsc_verdict(trace_403, {"status": "ALLOWED"}, {"is_noindex_active": True}, {"is_soft_404": False})
+        self.assertEqual(verdict_403["gsc_status"], "ACCESS_FORBIDDEN (403)")
+        self.assertEqual(verdict_403["severity"], "CRITICAL")
+        self.assertFalse(verdict_403["is_indexable"])
+
+        # 401 Unauthorized
+        trace_401 = {"start_url": "https://example.com/admin", "final_status_code": 401, "is_loop": False}
+        verdict_401 = synthesize_gsc_verdict(trace_401, {"status": "ALLOWED"}, {"is_noindex_active": False}, {"is_soft_404": False})
+        self.assertEqual(verdict_401["gsc_status"], "UNAUTHORIZED (401)")
+        self.assertFalse(verdict_401["is_indexable"])
+
+        # 410 Gone
+        trace_410 = {"start_url": "https://example.com/old", "final_status_code": 410, "is_loop": False}
+        verdict_410 = synthesize_gsc_verdict(trace_410, {"status": "ALLOWED"}, {"is_noindex_active": False}, {"is_soft_404": False})
+        self.assertEqual(verdict_410["gsc_status"], "GONE (410)")
+        self.assertFalse(verdict_410["is_indexable"])
+
+        # 429 Rate Limited
+        trace_429 = {"start_url": "https://example.com/feed", "final_status_code": 429, "is_loop": False}
+        verdict_429 = synthesize_gsc_verdict(trace_429, {"status": "ALLOWED"}, {"is_noindex_active": False}, {"is_soft_404": False})
+        self.assertEqual(verdict_429["gsc_status"], "RATE_LIMITED (429)")
+        self.assertFalse(verdict_429["is_indexable"])
+
 
 if __name__ == "__main__":
     unittest.main()

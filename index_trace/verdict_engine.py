@@ -63,16 +63,76 @@ def synthesize_gsc_verdict(
         }
 
     # 3. Client Errors (4xx)
+    if final_status == 401:
+        return {
+            "gsc_status": "UNAUTHORIZED (401)",
+            "severity": "CRITICAL",
+            "is_indexable": False,
+            "root_cause": "Destination URL returned HTTP 401 Unauthorized. Server requires valid authentication credentials.",
+            "remediation": [
+                "Verify if this staging or protected URL was mistakenly submitted to search engines or XML sitemaps.",
+                "If this page should be publicly indexed, remove HTTP Basic Authentication requirements."
+            ]
+        }
+
+    if final_status == 403:
+        return {
+            "gsc_status": "ACCESS_FORBIDDEN (403)",
+            "severity": "CRITICAL",
+            "is_indexable": False,
+            "root_cause": "Destination URL returned HTTP 403 Forbidden. Cloudflare, AWS WAF, or server access control is blocking automated crawlers.",
+            "remediation": [
+                "Verify Cloudflare or WAF security rules to ensure genuine search crawlers (Googlebot) and verified user-agents are whitelisted.",
+                "Check server directory permissions (.htaccess / Nginx) and firewall IP restriction lists blocking crawler inspection requests."
+            ]
+        }
+
     if final_status == 404:
         return {
             "gsc_status": "NOT_FOUND (404)",
             "severity": "CRITICAL",
             "is_indexable": False,
-            "root_cause": f"Destination URL returned HTTP 404 Not Found.",
+            "root_cause": "Destination URL returned HTTP 404 Not Found.",
             "remediation": [
                 "If the page was permanently moved, deploy a permanent 301 redirect to the closest relevant replacement URL.",
                 "If intentionally deleted, return HTTP 410 Gone to signal immediate de-indexation to search engines.",
                 "Update internal site navigation and XML sitemaps to purge the broken link."
+            ]
+        }
+
+    if final_status == 410:
+        return {
+            "gsc_status": "GONE (410)",
+            "severity": "CRITICAL",
+            "is_indexable": False,
+            "root_cause": "Destination URL returned HTTP 410 Gone. Resource has been intentionally deleted.",
+            "remediation": [
+                "Purge this URL from XML sitemaps and internal navigation links.",
+                "If search equity or traffic needs to be preserved, configure a 301 redirect to the closest relevant live replacement URL."
+            ]
+        }
+
+    if final_status == 429:
+        return {
+            "gsc_status": "RATE_LIMITED (429)",
+            "severity": "CRITICAL",
+            "is_indexable": False,
+            "root_cause": "Destination URL returned HTTP 429 Too Many Requests. Crawler exceeded server or CDN rate limits.",
+            "remediation": [
+                "Adjust edge rate limiting thresholds on Cloudflare / AWS WAF for search engine crawler user-agents.",
+                "Inspect server access logs to identify upstream crawling surges causing rate throttling."
+            ]
+        }
+
+    if 400 <= final_status < 500:
+        return {
+            "gsc_status": f"CLIENT_ERROR ({final_status})",
+            "severity": "CRITICAL",
+            "is_indexable": False,
+            "root_cause": f"Destination URL returned HTTP {final_status} client error.",
+            "remediation": [
+                f"Inspect web server access logs to identify why HTTP {final_status} was returned.",
+                "Ensure valid request formatting, HTTP headers, and URL syntax."
             ]
         }
 

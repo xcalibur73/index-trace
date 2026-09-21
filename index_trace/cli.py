@@ -60,7 +60,8 @@ def run_audit(
     directives_data = inspect_directives(
         final_url=final_url,
         response_headers=headers,
-        html_content=html_text
+        html_content=html_text,
+        status_code=final_status
     )
 
     soft404_data = analyze_soft_404(
