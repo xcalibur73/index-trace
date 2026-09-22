@@ -1,5 +1,9 @@
 # IndexTrace
 
+> [!NOTE]
+> **Public Architecture & Distribution Notice**: This repository provides the open-source CLI interface, demonstration fixtures, and automated test suite. Full-scale headless browser automation, real-time CDP continuous profiling, and automated white-label client PDF reporting are exclusively hosted on the [WebAudits.pro](https://www.webaudits.pro) cloud platform.
+
+
 Google Search Console forensic diagnostic utility and RFC 9309 crawler tracer.
 
 Part of the [WebAudits.pro](https://webaudits.pro) technical intelligence platform.
