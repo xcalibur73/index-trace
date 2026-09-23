@@ -5,8 +5,9 @@
 
 
 Google Search Console forensic diagnostic utility and RFC 9309 crawler tracer.
-
 Part of the [WebAudits.pro](https://webaudits.pro) technical intelligence platform.
+
+> **Interactive Web Tool**: Run live Google Search Console indexing triage and crawler tracing directly in your browser at [webaudits.pro/tools/index-trace](https://webaudits.pro/tools/index-trace).
 
 ![Terminal Verification](assets/terminal_preview.png)
 
