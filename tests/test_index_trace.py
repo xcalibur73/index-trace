@@ -105,6 +105,14 @@ class TestDirectivesInspector(unittest.TestCase):
         self.assertTrue(res["is_noindex_active"])
         self.assertTrue(res["meta_robots"]["has_noindex"])
 
+    def test_noimageindex_false_positive_suppression(self):
+        headers = {"X-Robots-Tag": "noimageindex"}
+        html = '<html><head><meta name="robots" content="noimageindex"><title>Page</title></head></html>'
+        res = inspect_directives("https://example.com/page", headers, html)
+        self.assertFalse(res["is_noindex_active"])
+        self.assertFalse(res["x_robots_tag"]["has_noindex"])
+        self.assertFalse(res["meta_robots"]["has_noindex"])
+
     def test_canonical_alignment(self):
         headers = {}
         html_self = '<html><head><link rel="canonical" href="https://example.com/test"/></head></html>'

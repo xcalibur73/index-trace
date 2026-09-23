@@ -24,9 +24,9 @@ def inspect_directives(
 ) -> Dict[str, Any]:
     # 1. HTTP Headers
     x_robots_raw = response_headers.get("X-Robots-Tag", "")
-    header_noindex = "noindex" in x_robots_raw.lower()
-    header_nofollow = "nofollow" in x_robots_raw.lower()
-    header_none = "none" in x_robots_raw.lower()
+    header_noindex = bool(re.search(r'\bnoindex\b', x_robots_raw, re.IGNORECASE))
+    header_nofollow = bool(re.search(r'\bnofollow\b', x_robots_raw, re.IGNORECASE))
+    header_none = bool(re.search(r'\bnone\b', x_robots_raw, re.IGNORECASE))
     header_canonical = parse_link_header_canonical(response_headers.get("Link"))
 
     # 2. HTML Meta Tags (Only parse on valid HTTP 200 responses to prevent error page leakage)
@@ -47,14 +47,13 @@ def inspect_directives(
         meta_robots_content = meta_robots_el.get("content", "").strip() if meta_robots_el else ""
         meta_googlebot_content = meta_googlebot_el.get("content", "").strip() if meta_googlebot_el else ""
 
-        meta_noindex = (
-            "noindex" in meta_robots_content.lower() or 
-            "noindex" in meta_googlebot_content.lower() or
-            "none" in meta_robots_content.lower()
+        meta_noindex = bool(
+            re.search(r'\b(?:noindex|none)\b', meta_robots_content, re.IGNORECASE) or 
+            re.search(r'\b(?:noindex|none)\b', meta_googlebot_content, re.IGNORECASE)
         )
-        meta_nofollow = (
-            "nofollow" in meta_robots_content.lower() or
-            "nofollow" in meta_googlebot_content.lower()
+        meta_nofollow = bool(
+            re.search(r'\bnofollow\b', meta_robots_content, re.IGNORECASE) or 
+            re.search(r'\bnofollow\b', meta_googlebot_content, re.IGNORECASE)
         )
 
         # 3. HTML Canonical
